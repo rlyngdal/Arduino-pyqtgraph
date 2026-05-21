@@ -1,51 +1,99 @@
 {% extends "base.html" %}
-{% block title %}Admin – Udgifter{% endblock %}
+{% block title %}Kasserer-overblik{% endblock %}
 {% block content %}
-<div class="flex items-center justify-between mb-6">
-  <h1 class="text-2xl font-bold text-gray-900">Kasserer-overblik</h1>
+
+<!-- Header -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+  <div>
+    <h1 class="page-title">Kasserer-overblik</h1>
+    <p class="text-sm text-gray-500 mt-1">Behandl og godkend udgiftsanmodninger fra klubbens medlemmer</p>
+  </div>
 </div>
 
-<!-- Status tabs -->
-<div class="flex gap-2 mb-6 border-b border-gray-200">
-  {% set tabs = [('pending', 'Afventer'), ('approved', 'Godkendt'), ('paid', 'Udbetalt'), ('rejected', 'Afvist')] %}
-  {% for status, label in tabs %}
-  <a href="/admin?status={{ status }}"
-     class="pb-3 px-4 text-sm font-medium border-b-2 transition
-       {% if current_status == status %}border-indigo-600 text-indigo-700{% else %}border-transparent text-gray-500 hover:text-gray-700{% endif %}">
-    {{ label }}
-    {% if counts[status] > 0 %}
-    <span class="ml-1 bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">{{ counts[status] }}</span>
-    {% endif %}
+<!-- Stat cards -->
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+  {% set stat_config = [
+    ('pending',  '⏳', 'Afventer',  '#FEF3C7', '#92400E', '#D97706'),
+    ('approved', '✓',  'Godkendt',  '#D1FAE5', '#065F46', '#059669'),
+    ('paid',     '💸', 'Udbetalt',  '#DBEAFE', '#1E40AF', '#1A4A9C'),
+    ('rejected', '✗',  'Afvist',    '#FEE2E2', '#991B1B', '#DC2626'),
+  ] %}
+  {% for status, icon, label, bg, text, accent in stat_config %}
+  <a href="/admin?status={{ status }}" style="text-decoration:none;">
+    <div class="card p-5 cursor-pointer transition-shadow hover:shadow-md {% if current_status == status %}ring-2{% endif %}" style="{% if current_status == status %}ring-color:{{ accent }};{% endif %}">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-lg">{{ icon }}</span>
+        {% if counts[status] > 0 %}
+        <span class="text-2xl font-extrabold" style="color:{{ accent }};">{{ counts[status] }}</span>
+        {% else %}
+        <span class="text-2xl font-extrabold text-gray-200">0</span>
+        {% endif %}
+      </div>
+      <p class="text-xs font-semibold text-gray-500">{{ label }}</p>
+    </div>
   </a>
   {% endfor %}
 </div>
 
+<!-- Tab bar -->
+<div class="flex gap-1 mb-6 p-1 rounded-xl" style="background:#EEF2FF;">
+  {% set tabs = [('pending', '⏳ Afventer'), ('approved', '✓ Godkendt'), ('paid', '💸 Udbetalt'), ('rejected', '✗ Afvist')] %}
+  {% for status, label in tabs %}
+  <a href="/admin?status={{ status }}"
+     class="flex-1 text-center py-2 px-3 rounded-lg text-sm font-semibold transition"
+     style="{% if current_status == status %}background:white;color:#0A2D6E;box-shadow:0 1px 4px rgba(10,45,110,.12);{% else %}color:#6B7280;{% endif %}
+            text-decoration:none;">
+    {{ label }}
+    {% if counts[status] > 0 %}<span class="ml-1 text-xs">{{ counts[status] }}</span>{% endif %}
+  </a>
+  {% endfor %}
+</div>
+
+<!-- Claim list -->
 {% if claims %}
 <div class="space-y-3">
   {% for item in claims %}
   {% set c = item.claim %}
   {% set owner = item.owner %}
-  <a href="/udgift/{{ c.id }}" class="block bg-white rounded-xl border border-gray-200 p-4 hover:border-indigo-300 transition">
-    <div class="flex items-start justify-between">
-      <div>
-        <p class="font-semibold text-gray-900">{{ c.title }}</p>
-        <p class="text-sm text-gray-500 mt-0.5">{{ owner.name }} · {{ c.submitted_at.strftime('%d. %b %Y') if c.submitted_at else '' }}</p>
-        {% if c.is_race %}<span class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">Løb</span>{% endif %}
+  <a href="/udgift/{{ c.id }}" class="card flex items-center gap-4 p-5 hover:shadow-md transition-shadow block" style="text-decoration:none;">
+    <!-- Avatar -->
+    <div class="w-11 h-11 rounded-xl flex items-center justify-center font-bold text-white text-sm flex-shrink-0" style="background:#1A4A9C;">
+      {{ owner.name[0].upper() if owner else '?' }}
+    </div>
+    <!-- Info -->
+    <div class="flex-1 min-w-0">
+      <p class="font-semibold text-gray-900 truncate">{{ c.title }}</p>
+      <div class="flex items-center gap-2 mt-0.5 flex-wrap">
+        <span class="text-sm text-gray-400">{{ owner.name if owner else 'Ukendt' }}</span>
+        {% if c.event_name %}
+        <span class="text-gray-200">·</span>
+        <span class="text-sm text-gray-400">{{ c.event_name }}</span>
+        {% endif %}
+        {% if c.event_date %}
+        <span class="text-gray-200">·</span>
+        <span class="text-sm text-gray-400">{{ c.event_date.strftime('%-d. %b %Y') }}</span>
+        {% endif %}
+        {% if c.is_race %}<span class="badge" style="background:#FDF2F8;color:#DB2777;font-size:.65rem;">🏃 Løb</span>{% endif %}
+        {% if c.pu_supported %}<span class="badge" style="background:#D1FAE5;color:#065F46;font-size:.65rem;">PU</span>{% endif %}
+        {% if not c.website_promoted %}<span class="badge" style="background:#FEF3C7;color:#92400E;font-size:.65rem;">📣 Ikke delt</span>{% endif %}
       </div>
-      <div class="text-right">
-        <p class="font-bold text-gray-900 text-lg">{{ "%.2f"|format(c.amount) }} kr.</p>
-        <span class="badge badge-{{ c.status }}">
-          {% if c.status == 'pending' %}Afventer{% elif c.status == 'approved' %}Godkendt{% elif c.status == 'rejected' %}Afvist{% elif c.status == 'paid' %}Udbetalt{% endif %}
-        </span>
-      </div>
+    </div>
+    <!-- Amount + arrow -->
+    <div class="flex items-center gap-3 flex-shrink-0">
+      <span class="font-bold text-lg" style="color:#0A2D6E;">{{ "%.0f"|format(c.amount) }} kr.</span>
+      <svg class="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
     </div>
   </a>
   {% endfor %}
 </div>
 {% else %}
-<div class="text-center py-16 text-gray-400">
-  <div class="text-5xl mb-4">✅</div>
-  <p class="text-lg">Ingen udgifter i denne kategori</p>
+<div class="card p-16 text-center">
+  <div class="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center" style="background:#EEF2FF;">
+    <svg class="w-8 h-8" style="color:#1A4A9C;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+  </div>
+  <h3 class="text-lg font-bold text-gray-800 mb-1">Ingen udgifter her</h3>
+  <p class="text-gray-400 text-sm">Der er ingen udgifter i kategorien "{{ {'pending':'Afventer','approved':'Godkendt','paid':'Udbetalt','rejected':'Afvist'}[current_status] }}" lige nu.</p>
 </div>
 {% endif %}
+
 {% endblock %}

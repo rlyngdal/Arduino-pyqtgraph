@@ -3,40 +3,90 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}Udgiftsrefusion{% endblock %} – Fritidsklubben</title>
+  <title>{% block title %}Udgiftsrefusion{% endblock %} – FORCE Fritidsklub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <style>
-    .status-pending  { @apply bg-yellow-100 text-yellow-800; }
-    .status-approved { @apply bg-green-100 text-green-800; }
-    .status-rejected { @apply bg-red-100 text-red-800; }
-    .status-paid     { @apply bg-blue-100 text-blue-800; }
-    .badge { display: inline-block; padding: 2px 10px; border-radius: 9999px; font-size: .75rem; font-weight: 600; }
-    .badge-pending  { background:#fef9c3; color:#92400e; }
-    .badge-approved { background:#dcfce7; color:#166534; }
-    .badge-rejected { background:#fee2e2; color:#991b1b; }
-    .badge-paid     { background:#dbeafe; color:#1e40af; }
+    * { font-family: 'Inter', sans-serif; }
+    :root {
+      --force-blue: #0A2D6E;
+      --force-blue-mid: #1A4A9C;
+      --force-orange: #F26722;
+      --force-orange-light: #FEE8DA;
+    }
+    .force-bg { background: linear-gradient(135deg, #0A2D6E 0%, #1A4A9C 100%); }
+    .force-btn { background: var(--force-orange); }
+    .force-btn:hover { background: #D95A1A; }
+    .force-accent { color: var(--force-orange); }
+    .force-border { border-color: var(--force-orange); }
+    .card { background: white; border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(10,45,110,.07); }
+    .badge { display: inline-flex; align-items: center; padding: 3px 12px; border-radius: 999px; font-size: .72rem; font-weight: 600; letter-spacing: .02em; }
+    .badge-pending  { background: #FEF3C7; color: #92400E; }
+    .badge-approved { background: #D1FAE5; color: #065F46; }
+    .badge-rejected { background: #FEE2E2; color: #991B1B; }
+    .badge-paid     { background: #DBEAFE; color: #1E40AF; }
+    .nav-link { color: rgba(255,255,255,.75); font-size: .875rem; font-weight: 500; transition: color .15s; }
+    .nav-link:hover { color: #fff; }
+    .nav-link.active { color: #fff; }
+    .form-input { width: 100%; border: 1.5px solid #E2E8F0; border-radius: 10px; padding: 10px 14px; font-size: .9rem; outline: none; transition: border-color .2s, box-shadow .2s; }
+    .form-input:focus { border-color: #1A4A9C; box-shadow: 0 0 0 3px rgba(26,74,156,.12); }
+    .form-label { display: block; font-size: .825rem; font-weight: 600; color: #374151; margin-bottom: 6px; }
+    .section-card { padding: 28px; }
+    .page-title { font-size: 1.6rem; font-weight: 800; color: #0A2D6E; }
   </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
-  {% if user %}
-  <nav class="bg-white shadow-sm border-b border-gray-200">
-    <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
-      <a href="/" class="font-bold text-lg text-indigo-700">Udgiftsrefusion</a>
-      <div class="flex items-center gap-4">
+<body class="min-h-screen" style="background: #F5F7FB;">
+
+{% if user %}
+<!-- Topbar -->
+<nav class="force-bg shadow-lg">
+  <div class="max-w-6xl mx-auto px-6">
+    <div class="flex items-center justify-between h-16">
+      <!-- Logo -->
+      <a href="/" class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:rgba(255,255,255,.15);">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+        <div>
+          <span class="text-white font-bold text-sm leading-none block">FORCE Fritidsklub</span>
+          <span class="text-xs leading-none" style="color:rgba(255,255,255,.55);">Udgiftsrefusion</span>
+        </div>
+      </a>
+
+      <!-- Nav links -->
+      <div class="flex items-center gap-6">
         {% if user.is_admin %}
-          <a href="/admin" class="text-sm text-gray-600 hover:text-indigo-700">Admin</a>
+          <a href="/admin" class="nav-link">Oversigt</a>
         {% else %}
-          <a href="/mine-udgifter" class="text-sm text-gray-600 hover:text-indigo-700">Mine udgifter</a>
-          <a href="/indsend-udgift" class="text-sm bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700">Indsend udgift</a>
+          <a href="/mine-udgifter" class="nav-link">Mine udgifter</a>
+          <a href="/indsend-udgift" class="flex items-center gap-2 text-sm font-semibold text-white px-4 py-2 rounded-xl transition" style="background:var(--force-orange);">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+            Indsend udgift
+          </a>
         {% endif %}
-        <span class="text-sm text-gray-500">{{ user.name }}</span>
-        <a href="/logout" class="text-sm text-gray-400 hover:text-red-600">Log ud</a>
+        <!-- Avatar -->
+        <div class="flex items-center gap-2.5 pl-4 border-l border-white border-opacity-20">
+          <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm" style="background:var(--force-orange); color:white;">
+            {{ user.name[0].upper() }}
+          </div>
+          <div class="hidden sm:block">
+            <p class="text-white text-xs font-semibold leading-none">{{ user.name.split()[0] }}</p>
+            {% if user.is_admin %}<p class="text-xs leading-none mt-0.5" style="color:rgba(255,255,255,.55);">Kasserer</p>{% endif %}
+          </div>
+          <a href="/logout" class="nav-link ml-1 text-xs">Log ud</a>
+        </div>
       </div>
     </div>
-  </nav>
-  {% endif %}
-  <main class="max-w-5xl mx-auto px-4 py-8">
-    {% block content %}{% endblock %}
-  </main>
+  </div>
+</nav>
+{% endif %}
+
+<main class="max-w-6xl mx-auto px-6 py-10">
+  {% block content %}{% endblock %}
+</main>
+
 </body>
 </html>

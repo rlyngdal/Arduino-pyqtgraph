@@ -1,136 +1,267 @@
 {% extends "base.html" %}
-{% block title %}Udgift #{{ claim.id }}{% endblock %}
+{% block title %}{{ claim.title }}{% endblock %}
 {% block content %}
 
 {% set status_label = {'pending': 'Afventer', 'approved': 'Godkendt', 'rejected': 'Afvist', 'paid': 'Udbetalt'} %}
 {% set success = request.query_params.get('success') %}
+
 {% if success %}
-<div class="bg-green-50 border border-green-200 text-green-800 rounded-xl px-4 py-3 mb-6">
-  {% if success == 'approved' %}Udgiften er godkendt.
-  {% elif success == 'rejected' %}Udgiften er afvist.
-  {% elif success == 'paid' %}Udgiften er markeret som udbetalt.
-  {% endif %}
+<div class="card p-5 mb-6 flex items-start gap-4" style="border-left:4px solid #059669;">
+  <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background:#D1FAE5;">
+    <svg class="w-5 h-5" style="color:#059669;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+  </div>
+  <div>
+    {% if success == 'approved' %}<p class="font-semibold text-gray-900">Udgift godkendt</p><p class="text-sm text-gray-500">Ansøgeren kan nu modtage betalingen.</p>
+    {% elif success == 'rejected' %}<p class="font-semibold text-gray-900">Udgift afvist</p><p class="text-sm text-gray-500">Ansøgeren er notificeret om afvisningen.</p>
+    {% elif success == 'paid' %}<p class="font-semibold text-gray-900">Markeret som udbetalt</p><p class="text-sm text-gray-500">Udgiften er lukket.</p>
+    {% endif %}
+  </div>
 </div>
 {% endif %}
 
-<div class="flex items-center gap-3 mb-6">
-  <a href="{{ '/admin' if user.is_admin else '/mine-udgifter' }}" class="text-gray-400 hover:text-gray-600 text-sm">← Tilbage</a>
-  <h1 class="text-2xl font-bold text-gray-900">{{ claim.title }}</h1>
-  <span class="badge badge-{{ claim.status }}">{{ status_label[claim.status] }}</span>
+<!-- Back + title -->
+<div class="mb-6">
+  <a href="{{ '/admin' if user.is_admin else '/mine-udgifter' }}" class="inline-flex items-center gap-1.5 text-sm font-medium mb-3" style="color:#1A4A9C;">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+    {{ 'Admin-oversigt' if user.is_admin else 'Mine udgifter' }}
+  </a>
+  <div class="flex items-center gap-3 flex-wrap">
+    <h1 class="page-title">{{ claim.title }}</h1>
+    <span class="badge badge-{{ claim.status }}">
+      {% if claim.status == 'pending' %}⏳ Afventer
+      {% elif claim.status == 'approved' %}✓ Godkendt
+      {% elif claim.status == 'rejected' %}✗ Afvist
+      {% elif claim.status == 'paid' %}💸 Udbetalt
+      {% endif %}
+    </span>
+    {% if claim.is_race %}<span class="badge" style="background:#FDF2F8;color:#DB2777;">🏃 Løb</span>{% endif %}
+    {% if claim.pu_supported %}<span class="badge" style="background:#D1FAE5;color:#065F46;">PU-støttet</span>{% endif %}
+  </div>
 </div>
 
-<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-  <div class="md:col-span-2 space-y-5">
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <!-- Main content -->
+  <div class="lg:col-span-2 space-y-5">
 
-    <div class="bg-white rounded-xl border border-gray-200 p-5">
-      <h2 class="font-semibold text-gray-700 mb-3">Detaljer</h2>
-      <dl class="space-y-2 text-sm">
-        <div class="flex"><dt class="w-36 text-gray-500">Indsendt af</dt><dd class="font-medium">{{ owner.name }} ({{ owner.email }})</dd></div>
+    <!-- Key numbers -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+      <div class="card p-5 text-center">
+        <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Refusion</p>
+        <p class="text-2xl font-extrabold" style="color:#0A2D6E;">{{ "%.2f"|format(claim.amount) }}</p>
+        <p class="text-xs text-gray-400">kr.</p>
+      </div>
+      {% if claim.has_copayment %}
+      <div class="card p-5 text-center">
+        <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Egenbetaling</p>
+        <p class="text-2xl font-extrabold text-gray-700">{{ "%.2f"|format(claim.copayment_amount) }}</p>
+        <p class="text-xs text-gray-400">kr.</p>
+      </div>
+      {% endif %}
+      <div class="card p-5 text-center">
+        <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Deltagere</p>
+        <p class="text-2xl font-extrabold text-gray-700">{{ participants|length if participants else '–' }}</p>
+        <p class="text-xs text-gray-400">personer</p>
+      </div>
+    </div>
+
+    <!-- Details -->
+    <div class="card section-card">
+      <h2 class="font-bold text-gray-900 mb-4">Detaljer</h2>
+      <dl class="divide-y divide-gray-100">
+        <div class="flex py-3 first:pt-0 last:pb-0">
+          <dt class="w-40 text-sm text-gray-400 font-medium flex-shrink-0">Indsendt af</dt>
+          <dd class="text-sm font-semibold text-gray-800">{{ owner.name }} <span class="font-normal text-gray-400">({{ owner.email }})</span></dd>
+        </div>
         {% if claim.event_name %}
-        <div class="flex"><dt class="w-36 text-gray-500">Arrangement</dt><dd class="font-medium">{{ claim.event_name }}</dd></div>
+        <div class="flex py-3">
+          <dt class="w-40 text-sm text-gray-400 font-medium flex-shrink-0">Arrangement</dt>
+          <dd class="text-sm font-semibold text-gray-800">{{ claim.event_name }}</dd>
+        </div>
         {% endif %}
         {% if claim.event_date %}
-        <div class="flex"><dt class="w-36 text-gray-500">Dato</dt><dd>{{ claim.event_date.strftime('%d. %b %Y') if claim.event_date else '-' }}</dd></div>
-        {% endif %}
-        <div class="flex"><dt class="w-36 text-gray-500">Refusionsbeløb</dt><dd class="font-bold text-lg">{{ "%.2f"|format(claim.amount) }} kr.</dd></div>
-        {% if claim.has_copayment %}
-        <div class="flex"><dt class="w-36 text-gray-500">Egenbetaling</dt><dd>{{ "%.2f"|format(claim.copayment_amount) }} kr.</dd></div>
-        {% endif %}
-        <div class="flex"><dt class="w-36 text-gray-500">PU-støttet</dt>
-          <dd>{% if claim.pu_supported %}<span class="badge bg-green-100 text-green-800">Ja</span>{% else %}<span class="text-gray-400">Nej</span>{% endif %}</dd>
+        <div class="flex py-3">
+          <dt class="w-40 text-sm text-gray-400 font-medium flex-shrink-0">Dato</dt>
+          <dd class="text-sm font-semibold text-gray-800">{{ claim.event_date.strftime('%-d. %B %Y') }}</dd>
         </div>
-        <div class="flex"><dt class="w-36 text-gray-500">Hjemmeside</dt>
-          <dd>{% if claim.website_promoted %}<span class="badge bg-indigo-100 text-indigo-800">Delt</span>{% else %}<span class="text-amber-600 text-xs font-medium">Ikke delt endnu</span>{% endif %}</dd>
+        {% endif %}
+        <div class="flex py-3">
+          <dt class="w-40 text-sm text-gray-400 font-medium flex-shrink-0">Indsendt</dt>
+          <dd class="text-sm text-gray-600">{{ claim.submitted_at.strftime('%-d. %b %Y kl. %H:%M') if claim.submitted_at else '-' }}</dd>
         </div>
-        <div class="flex"><dt class="w-36 text-gray-500">Indsendt</dt><dd>{{ claim.submitted_at.strftime('%d. %b %Y kl. %H:%M') if claim.submitted_at else '-' }}</dd></div>
-        {% if claim.is_race %}<div class="flex"><dt class="w-36 text-gray-500">Type</dt><dd><span class="badge bg-purple-100 text-purple-800">Løb</span></dd></div>{% endif %}
-        {% if claim.description %}<div class="flex flex-col"><dt class="text-gray-500 mb-1">Beskrivelse</dt><dd class="text-gray-800">{{ claim.description }}</dd></div>{% endif %}
+        <div class="flex py-3">
+          <dt class="w-40 text-sm text-gray-400 font-medium flex-shrink-0">Hjemmeside</dt>
+          <dd>
+            {% if claim.website_promoted %}
+            <span class="badge" style="background:#EEF2FF;color:#1A4A9C;">📣 Delt</span>
+            {% else %}
+            <span class="badge" style="background:#FEF3C7;color:#92400E;">⚠ Ikke delt endnu</span>
+            {% endif %}
+          </dd>
+        </div>
+        {% if claim.description %}
+        <div class="flex flex-col py-3">
+          <dt class="text-sm text-gray-400 font-medium mb-1.5">Beskrivelse</dt>
+          <dd class="text-sm text-gray-700 leading-relaxed">{{ claim.description }}</dd>
+        </div>
+        {% endif %}
       </dl>
     </div>
 
+    <!-- Participants -->
     {% if participants %}
-    <div class="bg-white rounded-xl border border-gray-200 p-5">
-      <h2 class="font-semibold text-gray-700 mb-3">Deltagere ({{ participants|length }})</h2>
-      <ul class="space-y-1 text-sm">
+    <div class="card section-card">
+      <h2 class="font-bold text-gray-900 mb-4">Deltagere ({{ participants|length }})</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {% for p in participants %}
-        <li class="flex items-center gap-2"><span class="w-2 h-2 bg-indigo-400 rounded-full"></span>{{ p }}</li>
+        <div class="flex items-center gap-3 py-2 px-3 rounded-xl" style="background:#F8FAFF;">
+          <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style="background:#1A4A9C;">
+            {{ p[0].upper() }}
+          </div>
+          <span class="text-sm font-medium text-gray-800">{{ p }}</span>
+        </div>
         {% endfor %}
-      </ul>
+      </div>
     </div>
     {% endif %}
 
+    <!-- Files -->
     {% set receipts = files|selectattr('file_type', 'eq', 'receipt')|list %}
     {% set proofs   = files|selectattr('file_type', 'eq', 'proof')|list %}
 
     {% if receipts %}
-    <div class="bg-white rounded-xl border border-gray-200 p-5">
-      <h2 class="font-semibold text-gray-700 mb-3">Kvitteringer</h2>
-      <ul class="space-y-2">
+    <div class="card section-card">
+      <h2 class="font-bold text-gray-900 mb-4">Kvitteringer</h2>
+      <div class="space-y-2">
         {% for f in receipts %}
-        <li><a href="/fil/{{ f.id }}" class="flex items-center gap-2 text-indigo-600 hover:underline text-sm" target="_blank">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
-          {{ f.original_name }}
-        </a></li>
+        <a href="/fil/{{ f.id }}" target="_blank"
+          class="flex items-center gap-3 p-3 rounded-xl hover:opacity-80 transition"
+          style="background:#FFF7ED; text-decoration:none;">
+          <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background:#FED7AA;">
+            <svg class="w-4 h-4" style="color:#F26722;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+          </div>
+          <span class="text-sm font-semibold" style="color:#F26722;">{{ f.original_name }}</span>
+        </a>
         {% endfor %}
-      </ul>
+      </div>
     </div>
     {% endif %}
 
     {% if proofs %}
-    <div class="bg-white rounded-xl border border-gray-200 p-5">
-      <h2 class="font-semibold text-gray-700 mb-3">Gennemførelsesbewis</h2>
-      <ul class="space-y-2">
+    <div class="card section-card">
+      <h2 class="font-bold text-gray-900 mb-4">Gennemførelsesbewis</h2>
+      <div class="space-y-2">
         {% for f in proofs %}
-        <li><a href="/fil/{{ f.id }}" class="flex items-center gap-2 text-indigo-600 hover:underline text-sm" target="_blank">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          {{ f.original_name }}
-        </a></li>
+        <a href="/fil/{{ f.id }}" target="_blank"
+          class="flex items-center gap-3 p-3 rounded-xl hover:opacity-80 transition"
+          style="background:#F0FDF4; text-decoration:none;">
+          <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background:#BBF7D0;">
+            <svg class="w-4 h-4" style="color:#059669;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <span class="text-sm font-semibold" style="color:#059669;">{{ f.original_name }}</span>
+        </a>
         {% endfor %}
-      </ul>
+      </div>
     </div>
     {% endif %}
 
+    <!-- Hjemmeside-påmindelse -->
     {% if not claim.website_promoted %}
-    <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-4 flex gap-3">
-      <span class="text-xl">📣</span>
-      <p class="text-sm text-indigo-800">Arrangementet er endnu ikke delt på fritidsklubbens hjemmeside. Husk at lægge en invitation op inden og et indlæg med billeder efter.</p>
+    <div class="card p-5 flex items-start gap-4" style="border-left:4px solid #1A4A9C;">
+      <div class="text-2xl">📣</div>
+      <div>
+        <p class="font-semibold text-gray-900 text-sm">Arrangementet er ikke delt på hjemmesiden</p>
+        <p class="text-sm text-gray-500 mt-0.5">Husk at dele en invitation og et indlæg med billeder på fritidsklubbens hjemmeside.</p>
+      </div>
     </div>
     {% endif %}
 
+    <!-- Admin comment -->
     {% if claim.admin_comment %}
-    <div class="bg-amber-50 border border-amber-200 rounded-xl p-5">
-      <h2 class="font-semibold text-amber-800 mb-2">Kassererens kommentar</h2>
-      <p class="text-sm text-amber-900">{{ claim.admin_comment }}</p>
+    <div class="card p-5 flex items-start gap-4" style="border-left:4px solid #D97706;">
+      <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background:#FEF3C7;">
+        <svg class="w-4 h-4" style="color:#D97706;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/></svg>
+      </div>
+      <div>
+        <p class="font-semibold text-gray-800 text-sm mb-1">Kassererens kommentar</p>
+        <p class="text-sm text-gray-600 leading-relaxed">{{ claim.admin_comment }}</p>
+      </div>
     </div>
     {% endif %}
   </div>
 
-  {% if user.is_admin and claim.status == 'pending' %}
-  <div class="space-y-4">
-    <div class="bg-white rounded-xl border border-gray-200 p-5">
-      <h2 class="font-semibold text-gray-700 mb-4">Handling</h2>
+  <!-- Sidebar: admin actions -->
+  <div class="space-y-5">
+    {% if user.is_admin and claim.status == 'pending' %}
+    <div class="card section-card">
+      <h2 class="font-bold text-gray-900 mb-4">Behandl anmodning</h2>
       <form method="post" action="/admin/udgift/{{ claim.id }}/godkend" class="space-y-3">
-        <textarea name="comment" rows="2" placeholder="Kommentar (valgfrit)"
-          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 outline-none"></textarea>
-        <button type="submit" class="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 font-medium">Godkend</button>
+        <textarea name="comment" rows="2" placeholder="Kommentar til ansøger (valgfrit)"
+          class="form-input text-sm"></textarea>
+        <button type="submit" class="w-full text-white py-3 rounded-xl font-bold transition" style="background:#059669;">
+          ✓ Godkend udgift
+        </button>
       </form>
-      <form method="post" action="/admin/udgift/{{ claim.id }}/afvis" class="space-y-3 mt-4">
+      <div class="relative my-4">
+        <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-100"></div></div>
+        <div class="relative flex justify-center"><span class="px-3 text-xs text-gray-400" style="background:white;">eller</span></div>
+      </div>
+      <form method="post" action="/admin/udgift/{{ claim.id }}/afvis" class="space-y-3">
         <textarea name="comment" rows="2" required placeholder="Angiv årsag til afvisning..."
-          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 outline-none"></textarea>
-        <button type="submit" class="w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 font-medium">Afvis</button>
+          class="form-input text-sm"></textarea>
+        <button type="submit" class="w-full text-white py-3 rounded-xl font-bold transition" style="background:#DC2626;">
+          ✗ Afvis udgift
+        </button>
       </form>
     </div>
-  </div>
-  {% elif user.is_admin and claim.status == 'approved' %}
-  <div>
-    <div class="bg-white rounded-xl border border-gray-200 p-5">
-      <h2 class="font-semibold text-gray-700 mb-4">Udbetaling</h2>
-      <p class="text-sm text-gray-500 mb-3">Marker som udbetalt når beløbet er overført via bank/MobilePay.</p>
+    {% elif user.is_admin and claim.status == 'approved' %}
+    <div class="card section-card">
+      <div class="w-12 h-12 rounded-xl mx-auto mb-4 flex items-center justify-center" style="background:#DBEAFE;">
+        <svg class="w-6 h-6" style="color:#1E40AF;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+      </div>
+      <h2 class="font-bold text-gray-900 text-center mb-1">Klar til udbetaling</h2>
+      <p class="text-sm text-gray-400 text-center mb-5">Overfør <strong class="text-gray-700">{{ "%.2f"|format(claim.amount) }} kr.</strong> til {{ owner.name }}, og marker herefter som udbetalt.</p>
       <form method="post" action="/admin/udgift/{{ claim.id }}/udbetalt">
-        <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 font-medium">Marker som udbetalt</button>
+        <button type="submit" class="w-full text-white py-3 rounded-xl font-bold" style="background:#1A4A9C;">
+          💸 Marker som udbetalt
+        </button>
       </form>
     </div>
+    {% elif claim.status == 'paid' %}
+    <div class="card p-6 text-center">
+      <div class="w-12 h-12 rounded-xl mx-auto mb-3 flex items-center justify-center" style="background:#DBEAFE;">
+        <svg class="w-6 h-6" style="color:#1E40AF;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+      </div>
+      <p class="font-bold text-gray-800">Afsluttet</p>
+      <p class="text-sm text-gray-400 mt-1">Udbetalt {{ claim.paid_at.strftime('%-d. %b %Y') if claim.paid_at else '' }}</p>
+    </div>
+    {% endif %}
+
+    <!-- Summary box always visible -->
+    <div class="card p-5" style="background:#0A2D6E;">
+      <p class="text-xs font-semibold uppercase tracking-wide mb-3" style="color:rgba(255,255,255,.5);">Sammendrag</p>
+      <div class="space-y-2">
+        <div class="flex justify-between text-sm">
+          <span style="color:rgba(255,255,255,.7);">Udgift</span>
+          <span class="font-semibold text-white">{{ "%.2f"|format(claim.amount) }} kr.</span>
+        </div>
+        {% if claim.has_copayment %}
+        <div class="flex justify-between text-sm">
+          <span style="color:rgba(255,255,255,.7);">Egenbetaling</span>
+          <span class="font-semibold text-white">– {{ "%.2f"|format(claim.copayment_amount) }} kr.</span>
+        </div>
+        <div class="border-t border-white border-opacity-20 pt-2 flex justify-between text-sm">
+          <span style="color:rgba(255,255,255,.7);">Netto</span>
+          <span class="font-bold text-white text-base">{{ "%.2f"|format(claim.amount - (claim.copayment_amount or 0)) }} kr.</span>
+        </div>
+        {% endif %}
+        {% if claim.pu_supported %}
+        <div class="flex justify-between text-sm pt-1">
+          <span style="color:rgba(255,255,255,.7);">PU-støtte</span>
+          <span class="font-semibold" style="color:#4ADE80;">Ja</span>
+        </div>
+        {% endif %}
+      </div>
+    </div>
   </div>
-  {% endif %}
 </div>
 {% endblock %}
