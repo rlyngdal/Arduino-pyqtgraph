@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Indsend udgift{% endblock %}
+{% block content %}
+<div class="max-w-2xl mx-auto">
+  <h1 class="text-2xl font-bold text-gray-900 mb-6">Indsend udgift</h1>
+
+  <form method="post" enctype="multipart/form-data" class="space-y-6">
+
+    <div class="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+      <h2 class="font-semibold text-gray-800">Udgiftsoplysninger</h2>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Titel / hvad er udgiften til?</label>
+        <input name="title" required placeholder="F.eks. Forplejning til træning 12. maj"
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none">
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Beløb (kr.)</label>
+        <input name="amount" type="number" step="0.01" min="0.01" required placeholder="0.00"
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none">
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Yderligere beskrivelse (valgfrit)</label>
+        <textarea name="description" rows="3" placeholder="Beskriv udgiften nærmere..."
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"></textarea>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+      <h2 class="font-semibold text-gray-800">Deltagere</h2>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Navne på deltagere (én per linje)</label>
+        <textarea name="participants" rows="4" placeholder="Rasmus Lyngdal&#10;Anders Jensen&#10;Maria Nielsen"
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-sm"></textarea>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+      <h2 class="font-semibold text-gray-800">Er dette en løbsudgift?</h2>
+      <label class="flex items-center gap-3 cursor-pointer">
+        <input type="checkbox" name="is_race" id="is_race" value="true" class="w-4 h-4 accent-indigo-600" onchange="toggleProof(this)">
+        <span class="text-sm text-gray-700">Ja, dette er relateret til et løb (startgebyr, transport, osv.)</span>
+      </label>
+      <div id="proof-section" class="hidden">
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          Bevis for gennemførelse <span class="text-red-500">*</span>
+          <span class="text-gray-400 font-normal">(screenshot fra app, resultatliste el.lign.)</span>
+        </label>
+        <input type="file" name="proofs" multiple accept=".pdf,.jpg,.jpeg,.png,.heic,.webp"
+          class="block w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+      <h2 class="font-semibold text-gray-800">Kvitteringer <span class="text-red-500">*</span></h2>
+      <p class="text-sm text-gray-500">Upload kvitteringer (PDF, JPG, PNG). Max 20 MB per fil.</p>
+      <input type="file" name="receipts" multiple required accept=".pdf,.jpg,.jpeg,.png,.heic,.webp"
+        class="block w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+    </div>
+
+    <button type="submit"
+      class="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 transition text-lg">
+      Send udgift til kasserer
+    </button>
+  </form>
+</div>
+
+<script>
+function toggleProof(cb) {
+  document.getElementById('proof-section').classList.toggle('hidden', !cb.checked);
+  document.querySelector('[name=proofs]').required = cb.checked;
+}
+</script>
+{% endblock %}

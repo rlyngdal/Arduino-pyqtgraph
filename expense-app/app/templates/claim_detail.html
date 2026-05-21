@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Udgift #{{ claim.id }}{% endblock %}
+{% block content %}
+
+{% set status_label = {'pending': 'Afventer', 'approved': 'Godkendt', 'rejected': 'Afvist', 'paid': 'Udbetalt'} %}
+{% set success = request.query_params.get('success') %}
+{% if success %}
+<div class="bg-green-50 border border-green-200 text-green-800 rounded-xl px-4 py-3 mb-6">
+  {% if success == 'approved' %}Udgiften er godkendt.
+  {% elif success == 'rejected' %}Udgiften er afvist.
+  {% elif success == 'paid' %}Udgiften er markeret som udbetalt.
+  {% endif %}
+</div>
+{% endif %}
+
+<div class="flex items-center gap-3 mb-6">
+  <a href="{{ '/admin' if user.is_admin else '/mine-udgifter' }}" class="text-gray-400 hover:text-gray-600 text-sm">← Tilbage</a>
+  <h1 class="text-2xl font-bold text-gray-900">{{ claim.title }}</h1>
+  <span class="badge badge-{{ claim.status }}">{{ status_label[claim.status] }}</span>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+  <div class="md:col-span-2 space-y-5">
+
+    <div class="bg-white rounded-xl border border-gray-200 p-5">
+      <h2 class="font-semibold text-gray-700 mb-3">Detaljer</h2>
+      <dl class="space-y-2 text-sm">
+        <div class="flex"><dt class="w-32 text-gray-500">Indsendt af</dt><dd class="font-medium">{{ owner.name }} ({{ owner.email }})</dd></div>
+        <div class="flex"><dt class="w-32 text-gray-500">Beløb</dt><dd class="font-bold text-lg">{{ "%.2f"|format(claim.amount) }} kr.</dd></div>
+        <div class="flex"><dt class="w-32 text-gray-500">Indsendt</dt><dd>{{ claim.submitted_at.strftime('%d. %b %Y kl. %H:%M') if claim.submitted_at else '-' }}</dd></div>
+        {% if claim.is_race %}<div class="flex"><dt class="w-32 text-gray-500">Type</dt><dd><span class="badge bg-purple-100 text-purple-800">Løb</span></dd></div>{% endif %}
+        {% if claim.description %}<div class="flex flex-col"><dt class="text-gray-500">Beskrivelse</dt><dd class="mt-1 text-gray-800">{{ claim.description }}</dd></div>{% endif %}
+      </dl>
+    </div>
+
+    {% if participants %}
+    <div class="bg-white rounded-xl border border-gray-200 p-5">
+      <h2 class="font-semibold text-gray-700 mb-3">Deltagere ({{ participants|length }})</h2>
+      <ul class="space-y-1 text-sm">
+        {% for p in participants %}
+        <li class="flex items-center gap-2"><span class="w-2 h-2 bg-indigo-400 rounded-full"></span>{{ p }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    {% set receipts = files|selectattr('file_type', 'eq', 'receipt')|list %}
+    {% set proofs   = files|selectattr('file_type', 'eq', 'proof')|list %}
+
+    {% if receipts %}
+    <div class="bg-white rounded-xl border border-gray-200 p-5">
+      <h2 class="font-semibold text-gray-700 mb-3">Kvitteringer</h2>
+      <ul class="space-y-2">
+        {% for f in receipts %}
+        <li><a href="/fil/{{ f.id }}" class="flex items-center gap-2 text-indigo-600 hover:underline text-sm" target="_blank">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+          {{ f.original_name }}
+        </a></li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    {% if proofs %}
+    <div class="bg-white rounded-xl border border-gray-200 p-5">
+      <h2 class="font-semibold text-gray-700 mb-3">Gennemførelsesbewis</h2>
+      <ul class="space-y-2">
+        {% for f in proofs %}
+        <li><a href="/fil/{{ f.id }}" class="flex items-center gap-2 text-indigo-600 hover:underline text-sm" target="_blank">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          {{ f.original_name }}
+        </a></li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    {% if claim.admin_comment %}
+    <div class="bg-amber-50 border border-amber-200 rounded-xl p-5">
+      <h2 class="font-semibold text-amber-800 mb-2">Kassererens kommentar</h2>
+      <p class="text-sm text-amber-900">{{ claim.admin_comment }}</p>
+    </div>
+    {% endif %}
+  </div>
+
+  {% if user.is_admin and claim.status == 'pending' %}
+  <div class="space-y-4">
+    <div class="bg-white rounded-xl border border-gray-200 p-5">
+      <h2 class="font-semibold text-gray-700 mb-4">Handling</h2>
+      <form method="post" action="/admin/udgift/{{ claim.id }}/godkend" class="space-y-3">
+        <textarea name="comment" rows="2" placeholder="Kommentar (valgfrit)"
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 outline-none"></textarea>
+        <button type="submit" class="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 font-medium">Godkend</button>
+      </form>
+      <form method="post" action="/admin/udgift/{{ claim.id }}/afvis" class="space-y-3 mt-4">
+        <textarea name="comment" rows="2" required placeholder="Angiv årsag til afvisning..."
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 outline-none"></textarea>
+        <button type="submit" class="w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 font-medium">Afvis</button>
+      </form>
+    </div>
+  </div>
+  {% elif user.is_admin and claim.status == 'approved' %}
+  <div>
+    <div class="bg-white rounded-xl border border-gray-200 p-5">
+      <h2 class="font-semibold text-gray-700 mb-4">Udbetaling</h2>
+      <p class="text-sm text-gray-500 mb-3">Marker som udbetalt når beløbet er overført via bank/MobilePay.</p>
+      <form method="post" action="/admin/udgift/{{ claim.id }}/udbetalt">
+        <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 font-medium">Marker som udbetalt</button>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
