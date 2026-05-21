@@ -6,3 +6,4 @@ uploads/
 *.egg-info/
 .venv/
 venv/
+demo_server.py
