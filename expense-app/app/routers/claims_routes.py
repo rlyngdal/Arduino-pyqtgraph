@@ -77,10 +77,16 @@ async def new_claim_form(request: Request):
 async def submit_claim(
     request: Request,
     title: str = Form(...),
+    event_name: str = Form(""),
+    event_date: str = Form(""),
     description: str = Form(""),
     amount: float = Form(...),
     participants: str = Form(""),
     is_race: bool = Form(False),
+    has_copayment: bool = Form(False),
+    copayment_amount: float = Form(0.0),
+    pu_supported: bool = Form(False),
+    website_promoted: bool = Form(False),
     receipts: list[UploadFile] = File(default=[]),
     proofs: list[UploadFile] = File(default=[]),
 ):
@@ -93,15 +99,29 @@ async def submit_claim(
     if is_race and not any(f.filename for f in proofs):
         raise HTTPException(status_code=400, detail="Gennemførelsesbewis er påkrævet for løb")
 
+    from datetime import date
+    parsed_date = None
+    if event_date:
+        try:
+            parsed_date = date.fromisoformat(event_date)
+        except ValueError:
+            pass
+
     participants_list = [p.strip() for p in participants.split("\n") if p.strip()]
     claim_id = await database.execute(
         claims.insert().values(
             user_id=user["id"],
             title=title,
+            event_name=event_name or None,
+            event_date=parsed_date,
             description=description,
             amount=amount,
             participants=json.dumps(participants_list, ensure_ascii=False),
             is_race=is_race,
+            has_copayment=has_copayment,
+            copayment_amount=copayment_amount if has_copayment else None,
+            pu_supported=pu_supported,
+            website_promoted=website_promoted,
             status="pending",
         )
     )

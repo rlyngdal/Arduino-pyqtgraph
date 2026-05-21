@@ -26,8 +26,14 @@ claims = sqlalchemy.Table(
     sqlalchemy.Column("title", sqlalchemy.String, nullable=False),
     sqlalchemy.Column("description", sqlalchemy.Text),
     sqlalchemy.Column("amount", sqlalchemy.Numeric(10, 2), nullable=False),
+    sqlalchemy.Column("event_name", sqlalchemy.String),
+    sqlalchemy.Column("event_date", sqlalchemy.Date),
     sqlalchemy.Column("participants", sqlalchemy.Text),  # JSON string
     sqlalchemy.Column("is_race", sqlalchemy.Boolean, default=False),
+    sqlalchemy.Column("has_copayment", sqlalchemy.Boolean, default=False),
+    sqlalchemy.Column("copayment_amount", sqlalchemy.Numeric(10, 2)),
+    sqlalchemy.Column("pu_supported", sqlalchemy.Boolean, default=False),
+    sqlalchemy.Column("website_promoted", sqlalchemy.Boolean, default=False),
     sqlalchemy.Column("status", sqlalchemy.String, default="pending"),  # pending, approved, rejected, paid
     sqlalchemy.Column("admin_comment", sqlalchemy.Text),
     sqlalchemy.Column("submitted_at", sqlalchemy.DateTime, server_default=sqlalchemy.func.now()),

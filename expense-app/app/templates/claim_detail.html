@@ -25,11 +25,26 @@
     <div class="bg-white rounded-xl border border-gray-200 p-5">
       <h2 class="font-semibold text-gray-700 mb-3">Detaljer</h2>
       <dl class="space-y-2 text-sm">
-        <div class="flex"><dt class="w-32 text-gray-500">Indsendt af</dt><dd class="font-medium">{{ owner.name }} ({{ owner.email }})</dd></div>
-        <div class="flex"><dt class="w-32 text-gray-500">Beløb</dt><dd class="font-bold text-lg">{{ "%.2f"|format(claim.amount) }} kr.</dd></div>
-        <div class="flex"><dt class="w-32 text-gray-500">Indsendt</dt><dd>{{ claim.submitted_at.strftime('%d. %b %Y kl. %H:%M') if claim.submitted_at else '-' }}</dd></div>
-        {% if claim.is_race %}<div class="flex"><dt class="w-32 text-gray-500">Type</dt><dd><span class="badge bg-purple-100 text-purple-800">Løb</span></dd></div>{% endif %}
-        {% if claim.description %}<div class="flex flex-col"><dt class="text-gray-500">Beskrivelse</dt><dd class="mt-1 text-gray-800">{{ claim.description }}</dd></div>{% endif %}
+        <div class="flex"><dt class="w-36 text-gray-500">Indsendt af</dt><dd class="font-medium">{{ owner.name }} ({{ owner.email }})</dd></div>
+        {% if claim.event_name %}
+        <div class="flex"><dt class="w-36 text-gray-500">Arrangement</dt><dd class="font-medium">{{ claim.event_name }}</dd></div>
+        {% endif %}
+        {% if claim.event_date %}
+        <div class="flex"><dt class="w-36 text-gray-500">Dato</dt><dd>{{ claim.event_date.strftime('%d. %b %Y') if claim.event_date else '-' }}</dd></div>
+        {% endif %}
+        <div class="flex"><dt class="w-36 text-gray-500">Refusionsbeløb</dt><dd class="font-bold text-lg">{{ "%.2f"|format(claim.amount) }} kr.</dd></div>
+        {% if claim.has_copayment %}
+        <div class="flex"><dt class="w-36 text-gray-500">Egenbetaling</dt><dd>{{ "%.2f"|format(claim.copayment_amount) }} kr.</dd></div>
+        {% endif %}
+        <div class="flex"><dt class="w-36 text-gray-500">PU-støttet</dt>
+          <dd>{% if claim.pu_supported %}<span class="badge bg-green-100 text-green-800">Ja</span>{% else %}<span class="text-gray-400">Nej</span>{% endif %}</dd>
+        </div>
+        <div class="flex"><dt class="w-36 text-gray-500">Hjemmeside</dt>
+          <dd>{% if claim.website_promoted %}<span class="badge bg-indigo-100 text-indigo-800">Delt</span>{% else %}<span class="text-amber-600 text-xs font-medium">Ikke delt endnu</span>{% endif %}</dd>
+        </div>
+        <div class="flex"><dt class="w-36 text-gray-500">Indsendt</dt><dd>{{ claim.submitted_at.strftime('%d. %b %Y kl. %H:%M') if claim.submitted_at else '-' }}</dd></div>
+        {% if claim.is_race %}<div class="flex"><dt class="w-36 text-gray-500">Type</dt><dd><span class="badge bg-purple-100 text-purple-800">Løb</span></dd></div>{% endif %}
+        {% if claim.description %}<div class="flex flex-col"><dt class="text-gray-500 mb-1">Beskrivelse</dt><dd class="text-gray-800">{{ claim.description }}</dd></div>{% endif %}
       </dl>
     </div>
 
@@ -72,6 +87,13 @@
         </a></li>
         {% endfor %}
       </ul>
+    </div>
+    {% endif %}
+
+    {% if not claim.website_promoted %}
+    <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-4 flex gap-3">
+      <span class="text-xl">📣</span>
+      <p class="text-sm text-indigo-800">Arrangementet er endnu ikke delt på fritidsklubbens hjemmeside. Husk at lægge en invitation op inden og et indlæg med billeder efter.</p>
     </div>
     {% endif %}
 
